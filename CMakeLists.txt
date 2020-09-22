@@ -5,7 +5,6 @@ add_library(luabind STATIC
 	src/class_info.cpp
 	src/class_registry.cpp
 	src/class_rep.cpp
-	src/CMakeLists.txt
 	src/create_class.cpp
 	src/error.cpp
 	src/find_best_match.cpp
