@@ -20,57 +20,40 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 // OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include <luabind/lua_include.hpp>
+#if !BOOST_PP_IS_ITERATING
 
-#include <luabind/luabind.hpp>
-#include <luabind/class_info.hpp>
+#ifndef LUABIND_CALC_ARITY_HPP_INCLUDED
+#define LUABIND_CALC_ARITY_HPP_INCLUDED
 
-namespace luabind
+#define LUABIND_FIND_CONV(z,n,text) typedef typename find_conversion_policy<n + 1, Policies>::type p##n;
+#define LUABIND_CALC_ARITY(z,n,text) + BOOST_PP_CAT(p,n)::has_arg
+
+namespace luabind { namespace detail
 {
-	class_info get_class_info(const object& o)
+	template<int N> struct calc_arity;
+
+	#define BOOST_PP_ITERATION_PARAMS_1 (4, (0, LUABIND_MAX_ARITY, <luabind/detail/calc_arity.hpp>, 1))
+	#include BOOST_PP_ITERATE()
+}}
+
+#undef LUABIND_CALC_ARITY
+#undef LUABIND_FIND_CONV
+
+
+#endif // LUABIND_CALC_ARITY_HPP_INCLUDED
+
+#else // BOOST_PP_ITERATE
+
+	template<>
+	struct calc_arity<BOOST_PP_ITERATION()>
 	{
-		lua_State* L = o.interpreter();
-	
-		class_info result;
-	
-		o.push(L);
-		detail::object_rep* obj = static_cast<detail::object_rep*>(lua_touserdata(L, -1));
-		lua_pop(L, 1);
-
-		result.name = obj->crep()->name();
-		obj->crep()->get_table(L);
-
-		object methods(from_stack(L, -1));
-		
-		methods.swap(result.methods);
-		lua_pop(L, 1);
-		
-		result.attributes = newtable(L);
-
-		typedef detail::class_rep::property_map map_type;
-		
-		std::size_t index = 1;
-		
-		for (map_type::const_iterator i = obj->crep()->properties().begin();
-				i != obj->crep()->properties().end(); ++i, ++index)
+		template<BOOST_PP_ENUM_PARAMS(LUABIND_MAX_ARITY, class A), class Policies>
+		static int apply(constructor<BOOST_PP_ENUM_PARAMS(LUABIND_MAX_ARITY, A)>, Policies*)
 		{
-			result.attributes[index] = i->first;
+			BOOST_PP_REPEAT(BOOST_PP_ITERATION(), LUABIND_FIND_CONV, _)
+			return 0 BOOST_PP_REPEAT(BOOST_PP_ITERATION(), LUABIND_CALC_ARITY, _);
 		}
+	};
 
-		return result;
-	}
-
-	void bind_class_info(lua_State* L)
-	{
-		module(L)
-		[
-			class_<class_info>("class_info_data")
-				.def_readonly("name", &class_info::name)
-				.def_readonly("methods", &class_info::methods)
-				.def_readonly("attributes", &class_info::attributes),
-		
-			def("class_info", &get_class_info)
-		];
-	}
-}
+#endif
 

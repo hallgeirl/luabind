@@ -1,4 +1,4 @@
-// Copyright (c) 2003 Daniel Wallin and Arvid Norberg
+// Copyright (c) 2004 Daniel Wallin
 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,57 +20,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 // OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include <luabind/error.hpp>
+#ifndef POINTEE_TYPEID_040211_HPP
+#define POINTEE_TYPEID_040211_HPP
 
+#include <luabind/config.hpp>
 
-namespace luabind
-{
+namespace luabind { namespace detail {
 
-	namespace
-	{
-		pcall_callback_fun pcall_callback = 0;
-#ifdef LUABIND_NO_EXCEPTIONS
-		error_callback_fun error_callback = 0;
-		cast_failed_callback_fun cast_failed_callback = 0;
-#endif
-	}
+    template<class T>
+    LUABIND_TYPE_INFO pointee_typeid(T*)
+    {
+        return LUABIND_TYPEID(T);
+    }
 
+}} // namespace luabind::detail
 
-#ifdef LUABIND_NO_EXCEPTIONS
+#endif // POINTEE_TYPEID_040211_HPP
 
-	typedef void(*error_callback_fun)(lua_State*);
-	typedef void(*cast_failed_callback_fun)(lua_State*, LUABIND_TYPE_INFO);
-
-	void set_error_callback(error_callback_fun e)
-	{
-		error_callback = e;
-	}
-
-	void set_cast_failed_callback(cast_failed_callback_fun c)
-	{
-		cast_failed_callback = c;
-	}
-
-	error_callback_fun get_error_callback()
-	{
-		return error_callback;
-	}
-
-	cast_failed_callback_fun get_cast_failed_callback()
-	{
-		return cast_failed_callback;
-	}
-
-#endif
-
-	void set_pcall_callback(pcall_callback_fun e)
-	{
-		pcall_callback = e;
-	}
-
-	pcall_callback_fun get_pcall_callback()
-	{
-		return pcall_callback;
-	}
-
-}

@@ -20,57 +20,47 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 // OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include <luabind/lua_include.hpp>
 
-#include <luabind/luabind.hpp>
-#include <luabind/class_info.hpp>
+#ifndef LUABIND_DISCARD_RESULT_POLICY_HPP_INCLUDED
+#define LUABIND_DISCARD_RESULT_POLICY_HPP_INCLUDED
+
+#include <luabind/config.hpp>
+#include <luabind/detail/policy.hpp>
+
+namespace luabind { namespace detail 
+{
+	struct discard_converter
+	{
+		template<class T>
+		void apply(lua_State*, T) {}
+	};
+
+	struct discard_result_policy : conversion_policy<0>
+	{
+		static void precall(lua_State*, const index_map&) {}
+		static void postcall(lua_State*, const index_map&) {}
+
+		struct can_only_convert_from_cpp_to_lua {};
+
+		template<class T, class Direction>
+		struct apply
+		{
+			typedef typename boost::mpl::if_<boost::is_same<Direction, cpp_to_lua>
+				, discard_converter
+				, can_only_convert_from_cpp_to_lua
+			>::type type;
+		};
+	};
+
+}}
 
 namespace luabind
 {
-	class_info get_class_info(const object& o)
+	namespace 
 	{
-		lua_State* L = o.interpreter();
-	
-		class_info result;
-	
-		o.push(L);
-		detail::object_rep* obj = static_cast<detail::object_rep*>(lua_touserdata(L, -1));
-		lua_pop(L, 1);
-
-		result.name = obj->crep()->name();
-		obj->crep()->get_table(L);
-
-		object methods(from_stack(L, -1));
-		
-		methods.swap(result.methods);
-		lua_pop(L, 1);
-		
-		result.attributes = newtable(L);
-
-		typedef detail::class_rep::property_map map_type;
-		
-		std::size_t index = 1;
-		
-		for (map_type::const_iterator i = obj->crep()->properties().begin();
-				i != obj->crep()->properties().end(); ++i, ++index)
-		{
-			result.attributes[index] = i->first;
-		}
-
-		return result;
-	}
-
-	void bind_class_info(lua_State* L)
-	{
-		module(L)
-		[
-			class_<class_info>("class_info_data")
-				.def_readonly("name", &class_info::name)
-				.def_readonly("methods", &class_info::methods)
-				.def_readonly("attributes", &class_info::attributes),
-		
-			def("class_info", &get_class_info)
-		];
+		LUABIND_ANONYMOUS_FIX detail::policy_cons<detail::discard_result_policy, detail::null_type> discard_result;
 	}
 }
+
+#endif // LUABIND_DISCARD_RESULT_POLICY_HPP_INCLUDED
 

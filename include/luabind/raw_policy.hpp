@@ -20,57 +20,61 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 // OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include <luabind/lua_include.hpp>
 
-#include <luabind/luabind.hpp>
-#include <luabind/class_info.hpp>
+#ifndef LUABIND_RAW_POLICY_HPP_INCLUDED
+#define LUABIND_RAW_POLICY_HPP_INCLUDED
 
-namespace luabind
-{
-	class_info get_class_info(const object& o)
+#include <luabind/config.hpp>
+#include <luabind/detail/policy.hpp>
+
+namespace luabind { namespace detail  {
+
+	struct raw_converter
 	{
-		lua_State* L = o.interpreter();
-	
-		class_info result;
-	
-		o.push(L);
-		detail::object_rep* obj = static_cast<detail::object_rep*>(lua_touserdata(L, -1));
-		lua_pop(L, 1);
-
-		result.name = obj->crep()->name();
-		obj->crep()->get_table(L);
-
-		object methods(from_stack(L, -1));
-		
-		methods.swap(result.methods);
-		lua_pop(L, 1);
-		
-		result.attributes = newtable(L);
-
-		typedef detail::class_rep::property_map map_type;
-		
-		std::size_t index = 1;
-		
-		for (map_type::const_iterator i = obj->crep()->properties().begin();
-				i != obj->crep()->properties().end(); ++i, ++index)
+		lua_State* apply(lua_State* L, by_pointer<lua_State>, int)
 		{
-			result.attributes[index] = i->first;
+			return L;
 		}
 
-		return result;
+		static int match(...)
+		{
+			return 0;
+		}
+
+		void converter_postcall(lua_State*, by_pointer<lua_State>, int) {}
+	};
+
+	template<int N>
+	struct raw_policy : conversion_policy<N, false>
+	{
+		static void precall(lua_State*, const index_map&) {}
+		static void postcall(lua_State*, const index_map&) {}
+
+		template<class T, class Direction>
+		struct apply
+		{
+			typedef raw_converter type;
+		};
+	};
+
+}} // namespace luabind::detail
+
+namespace luabind {
+
+	template<int N>
+	detail::policy_cons<
+		detail::raw_policy<N>
+	  , detail::null_type
+	>
+	inline raw(LUABIND_PLACEHOLDER_ARG(N))
+	{ 
+		return detail::policy_cons<
+			detail::raw_policy<N>
+		  , detail::null_type
+		>(); 
 	}
 
-	void bind_class_info(lua_State* L)
-	{
-		module(L)
-		[
-			class_<class_info>("class_info_data")
-				.def_readonly("name", &class_info::name)
-				.def_readonly("methods", &class_info::methods)
-				.def_readonly("attributes", &class_info::attributes),
-		
-			def("class_info", &get_class_info)
-		];
-	}
-}
+} // namespace luabind
+
+#endif // LUABIND_RAW_POLICY_HPP_INCLUDED
 

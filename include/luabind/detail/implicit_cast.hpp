@@ -20,38 +20,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 // OR OTHER DEALINGS IN THE SOFTWARE.
 
+
+#ifndef LUABIND_IMPLICIT_CAST_HPP_INCLUDED
+#define LUABIND_IMPLICIT_CAST_HPP_INCLUDED
+
 #include <luabind/config.hpp>
-#include <luabind/lua_include.hpp>
-#include <luabind/detail/object_rep.hpp>
 #include <luabind/detail/class_rep.hpp>
-#include <luabind/detail/stack_utils.hpp>
 
 namespace luabind { namespace detail
 {
-	LUABIND_API void do_call_member_selection(lua_State* L, char const* name)
-	{
-		object_rep* obj = static_cast<object_rep*>(lua_touserdata(L, -1));
-		lua_pop(L, 1); // pop self
+	// returns -1 if there exists no implicit cast from the given class_rep
+	// to T. If there exists an implicit cast to T, the number of steps times 2
+	// is returned and pointer_offset is filled with the number of bytes
+	// the pointer have to be offseted to perform the cast
+	// the reason why we return the number of cast-steps times two, instead of
+	// just the number of steps is to be consistent with the function matchers. They
+	// have to give one matching-point extra to match const functions. There may be
+	// two functions that match their parameters exactly, but there is one const
+	// function and one non-const function, then (if the this-pointer is non-const)
+	// both functions will match. To avoid amiguaties, the const version will get
+	// one penalty point to make the match-selector select the non-const version. It
+	// the this-pointer is const, there's no problem, since the non-const function
+	// will not match at all.
 
-		obj->crep()->get_table(L); // push the crep table
-		lua_pushstring(L, name);
-		lua_gettable(L, -2);
-		lua_remove(L, -2); // remove the crep table
+	LUABIND_API int implicit_cast(const class_rep*, LUABIND_TYPE_INFO const&, int&);
 
-		{
-			if (!lua_iscfunction(L, -1)) return;
-			if (lua_getupvalue(L, -1, 3) == 0) return;
-			detail::stack_pop p(L, 1);
-			if (lua_touserdata(L, -1) != reinterpret_cast<void*>(0x1337)) return;
-		}
-
-		// this (usually) means the function has not been
-		// overridden by lua, call the default implementation
-		lua_pop(L, 1);
-		obj->crep()->get_default_table(L); // push the crep table
-		lua_pushstring(L, name);
-		lua_gettable(L, -2);
-		assert(!lua_isnil(L, -1));
-		lua_remove(L, -2); // remove the crep table
-	}
 }}
+
+#endif // LUABIND_IMPLICIT_CAST_HPP_INCLUDED
+

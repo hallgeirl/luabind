@@ -1,4 +1,4 @@
-// Copyright (c) 2003 Daniel Wallin and Arvid Norberg
+// Copyright (c) 2004 Daniel Wallin and Arvid Norberg
 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,57 +20,40 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 // OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include <luabind/error.hpp>
+#ifndef WEAK_REF_040402_HPP
+#define WEAK_REF_040402_HPP
 
+#include <luabind/config.hpp>
 
-namespace luabind
-{
+struct lua_State;
 
-	namespace
-	{
-		pcall_callback_fun pcall_callback = 0;
-#ifdef LUABIND_NO_EXCEPTIONS
-		error_callback_fun error_callback = 0;
-		cast_failed_callback_fun cast_failed_callback = 0;
-#endif
-	}
+namespace luabind {
 
+    class LUABIND_API weak_ref
+    {
+    public:
+        weak_ref();
+        weak_ref(lua_State*, int);
+        weak_ref(weak_ref const&);
+        ~weak_ref();
 
-#ifdef LUABIND_NO_EXCEPTIONS
+        weak_ref& operator=(weak_ref const&);
 
-	typedef void(*error_callback_fun)(lua_State*);
-	typedef void(*cast_failed_callback_fun)(lua_State*, LUABIND_TYPE_INFO);
+        void swap(weak_ref&);
 
-	void set_error_callback(error_callback_fun e)
-	{
-		error_callback = e;
-	}
+		// returns a unique id that no
+		// other weak ref will return
+		int id() const;
 
-	void set_cast_failed_callback(cast_failed_callback_fun c)
-	{
-		cast_failed_callback = c;
-	}
+        lua_State* state() const;
+        void get(lua_State* L) const;
 
-	error_callback_fun get_error_callback()
-	{
-		return error_callback;
-	}
+    private:
+        struct impl;
+        impl* m_impl;
+    };
 
-	cast_failed_callback_fun get_cast_failed_callback()
-	{
-		return cast_failed_callback;
-	}
+} // namespace luabind
 
-#endif
+#endif // WEAK_REF_040402_HPP
 
-	void set_pcall_callback(pcall_callback_fun e)
-	{
-		pcall_callback = e;
-	}
-
-	pcall_callback_fun get_pcall_callback()
-	{
-		return pcall_callback;
-	}
-
-}

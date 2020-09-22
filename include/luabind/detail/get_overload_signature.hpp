@@ -20,57 +20,35 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 // OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include <luabind/lua_include.hpp>
+#ifndef LUABIND_GET_OVERLOAD_SIGNATURE_HPP_INCLUDED
+#define LUABIND_GET_OVERLOAD_SIGNATURE_HPP_INCLUDED
 
-#include <luabind/luabind.hpp>
-#include <luabind/class_info.hpp>
+#include <string>
 
-namespace luabind
+namespace luabind { namespace detail
 {
-	class_info get_class_info(const object& o)
+
+	template<class It>
+	std::string get_overload_signatures(lua_State* L, It start, It end, std::string name)
 	{
-		lua_State* L = o.interpreter();
-	
-		class_info result;
-	
-		o.push(L);
-		detail::object_rep* obj = static_cast<detail::object_rep*>(lua_touserdata(L, -1));
-		lua_pop(L, 1);
-
-		result.name = obj->crep()->name();
-		obj->crep()->get_table(L);
-
-		object methods(from_stack(L, -1));
-		
-		methods.swap(result.methods);
-		lua_pop(L, 1);
-		
-		result.attributes = newtable(L);
-
-		typedef detail::class_rep::property_map map_type;
-		
-		std::size_t index = 1;
-		
-		for (map_type::const_iterator i = obj->crep()->properties().begin();
-				i != obj->crep()->properties().end(); ++i, ++index)
+		std::string s;
+		for (; start != end; ++start)
 		{
-			result.attributes[index] = i->first;
+			s += name;
+			start->get_signature(L, s);
+			s += "\n";
 		}
-
-		return result;
+		return s;
 	}
 
-	void bind_class_info(lua_State* L)
-	{
-		module(L)
-		[
-			class_<class_info>("class_info_data")
-				.def_readonly("name", &class_info::name)
-				.def_readonly("methods", &class_info::methods)
-				.def_readonly("attributes", &class_info::attributes),
-		
-			def("class_info", &get_class_info)
-		];
-	}
-}
+
+#ifndef LUABIND_NO_ERROR_CHECKING
+
+	std::string get_overload_signatures_candidates(lua_State* L, std::vector<const overload_rep_base*>::iterator start, std::vector<const overload_rep_base*>::iterator end, std::string name);
+
+#endif
+
+}}
+
+#endif // LUABIND_GET_OVERLOAD_SIGNATURE_HPP_INCLUDED
 
